@@ -1,0 +1,68 @@
+Practica 1
+
+ 
+ 1. Has descargado exercise1handout.zip, asegurate de extraer su contenido en un directorio de trabajo, por ejemplo Practicas. En ese directorio debe haber un directorio con el nombre exercise1handout.
+
+ 2. Descárgate CommonAndDataHandout.zip de la plataforma online y extrae su contenido en un directorio de trabajo de prácticas, por ejemplo Practicas.
+
+  Tu directorio de trabajo debe tener este aspecto:
+
+   <Practicas>
+   |_ exercise1handout
+   |_ common
+   |_ data
+
+ 3. Entra el directorio exercise1handout y abre el proyecto. Compila y ejecuta la solución en modo Debug.
+	
+ En esta práctica vamos a trabajar transformaciones con vectores y matrices.
+ 
+  en el código de exercise1.h
+  
+  están los métodos init(), update() y terminate() que controlan el ciclo de ejecución
+  init y terminate se ejecutan una vez al principio y al final
+  update() se ejecuta en cada frame
+  
+  1. comprueba que al ejecutar delante de la cámara se encuentra un cubo.
+  2. cambia los valores la posición inicial de la cámara [la variable cameraPosition en init()] hacia los lados izquierda y derecha, así como arriba y abajo:
+  
+    - ¿Sobre qué eje [x,y o z] tienes que actuar en cada caso?
+      
+    en el código aparece:
+	
+		cameraMatrix = translate(identity_mat4(), cameraPosition*-1.f);
+				
+    ¿por qué se multiplica cameraPosition por -1.f?
+   
+    un poco más abajo la cámara se envía al shader en:
+	 
+	 	camera.set_shader_data(lines_shader_index, cameraMatrix);
+		
+	comprueba cómo le llega la información al shader. Revisa el vertex shader "lines_vs.glsl". ¿Cómo se llama la matriz de la cámara en el shader? ¿Para qué se utiliza en el shader?
+	
+		 	   
+  3. usa las teclas en update() para mover la posición de la cámara de la siguiente forma:
+  
+		if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+			cameraPosition = ...;
+		}
+		
+	 es mejor que utilices la variable elapsed_seconds en el apartado anterior para que el movimiento no dependa de la velocidad del ordenador, sino del tiempo que pasa. Por ejemplo:
+	 
+	 cameraPosition.x = 3*elapsed_seconds; // moves camera at 3 units per second.
+	 
+    
+  4. haz que el cubo se traslade hacia la derecha cuando pulses la tecla d. Para ello debes actuar sobre la variable cubeMatrix. 
+  5. una vez hayas conseguido que se traslade, intenta que rote en la dirección de traslación, como si rodara. Para ello utiliza las funciones en math_utils.h que consideres. En especial puedes utilizar rotate_z_deg.
+  
+  6. amplia el código que crea las flechas del eje de referencias x,y,z (roja, verde y azul) para que se entienda dónde empieza y donde acaba. Debes:
+	- modificar el código que se encuentra en Shapes::addArrow(), que se llama en init(). 
+		Para ello debes añadir, además de la linea presente que va de origen (from) a final (to), una punta con cuatro aristas en el extremo. Las aristas son el copete ">" de la flecha "--->"
+		
+		 (from) ------> (to) 
+					   \
+				 	 aristas
+					
+		Las cuatro aristas que forman la punta de la flecha deben finalizar juntas en el final (to)  y deben comenzar a una distancia de 0.1*longitud del palo de la flecha.
+		Utiliza las rutinas cross y dot, el vector up (0,1,0) así como el escalado de vectores para encontrar las 4 posiciones adicionales que forma la punta junto con el extremo final (to) ¿se te ocurre cómo? 
+		Recuerda que las posiciones de las aristas de la punta deben ser perpendiculares a la flecha en las direcciones arriba, abajo, izquierda y derecha.
+		Plantéate cómo harías para obtener un vector perpendicular [pa] a otro arbitrario [a], usando como muleta el vector [up] y alguna de las operaciones mencionadas (cross, dot).

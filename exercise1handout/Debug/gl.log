@@ -1,0 +1,15 @@
+starting GLFW 3.3.4 Win32 WGL EGL OSMesa VisualC
+renderer: GeForce RTX 3080/PCIe/SSE2
+version: 4.6.0 NVIDIA 462.31
+creating shader from lines_vs.glsl...
+ERROR: opening file for reading: lines_vs.glsl
+shader compiled. index 1
+creating shader from lines_fs.glsl...
+ERROR: opening file for reading: lines_fs.glsl
+shader compiled. index 2
+created programme 3. attaching shaders 1 and 2...
+ERROR: could not link shader programme GL index 3
+program info log for GL index 3:
+Vertex info
+-----------
+(0) : error C5145: must write to gl_Position
