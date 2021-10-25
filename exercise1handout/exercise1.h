@@ -3,6 +3,7 @@
 #ifdef WIN32
 #include <direct.h>
 #endif
+
 #include "camera.h"
 #include "gl_utils.h"
 #include "lineshapes.h"
@@ -111,11 +112,28 @@ struct Exercise1 {
       glfwSetWindowShouldClose(window, 1);
     }
 
-    // TODO: change following line to translate and rotate camera
+    // ---------------------------------------------------------------
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+      cameraPosition += vec3(0, -1, 0) * elapsed_seconds;
+    }
+    if (glfwGetKey(window, GLFW_KEY_UP)) {
+      cameraPosition += vec3(0, 1, 0) * elapsed_seconds;
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+      cameraPosition += vec3(-1, 0, 0) * elapsed_seconds;
+    }
+    if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+      cameraPosition += vec3(1, 0, 0) * elapsed_seconds;
+    }
+
+    cubeMatrix = rotate_y_deg(cubeMatrix, 50.f * elapsed_seconds);
+
     cameraMatrix = translate(identity_mat4(), cameraPosition * -1.f);
 
-    // TODO: change following line to translate and rotate cube
-    cubeMatrix = translate(identity_mat4(), cubePosition);
+    cubeMatrix = translate(cubeMatrix, cubePosition);
+
+    // ---------------------------------------------------------------
 
     glUseProgram(lines_shader_index);
 
