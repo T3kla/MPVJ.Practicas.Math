@@ -1,2 +1,3 @@
 C:\Users\manuel.segura\Downloads\commonAndDataHandout\exercise1handout\Debug\Exercise1.exe
 C:\Users\manuel.segura\source\repos\MPVJ.Practicas.Math\exercise1handout\Debug\Exercise1.exe
+C:\Repos\MPVJ.Practicas.Math\exercise1handout\Debug\Exercise1.exe
