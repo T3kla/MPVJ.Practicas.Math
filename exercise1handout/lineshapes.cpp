@@ -96,32 +96,81 @@ void Lines::render(GLuint shader_programme)
 void Shapes::addArrow(Lines &lines, const vec3 &from, const vec3 &to, const vec3 &color)
 {
     vec3 one(0.2354846f, 0.2168565f, 0.2516546f);
-    vec3 two(-0.2354846f, 0.2168565f, 0.2516546f);
+
+    const unsigned int fromTo = 2;
+    const unsigned int iterations = 25;
+    const unsigned int total = iterations + fromTo;
+
+    vec3 arrow_vertices[total];
+    arrow_vertices[0] = from;
+    arrow_vertices[1] = to;
+
+    vec3 arrow_colors[total];
+    for (unsigned int i = 0; i < total; i++)
+        arrow_colors[i] = color;
 
     auto sharpness = 0.1f; // range [0,1] : 0 = sharpest, 1 = flattest
     auto length = 0.15f;
 
-    auto dir = to - from;
-    auto inv = from - to;
+    auto axis_dir = to - from;
+    auto axis_inv = from - to;
+    auto point = normalise(normalise(cross(one, axis_dir)) * sharpness + normalise(axis_inv) * 0.5f) * length;
+    auto alpha = 360.f / iterations;
 
-    auto pv1 = normalise(normalise(cross(one, dir)) * sharpness + normalise(inv) * 0.5f) * length + to;
-    auto pv2 = normalise(normalise(cross(one, inv)) * sharpness + normalise(inv) * 0.5f) * length + to;
-    auto pv3 = normalise(normalise(cross(two, dir)) * sharpness + normalise(inv) * 0.5f) * length + to;
-    auto pv4 = normalise(normalise(cross(two, inv)) * sharpness + normalise(inv) * 0.5f) * length + to;
+    // generate round points
+    for (unsigned int i = 0; i < iterations; i++)
+    {
+        auto p4 = vec4(point, 1);
+        auto r = quat_to_mat4(quat_from_axis_deg(alpha * i, axis_dir.x, axis_dir.y, axis_dir.z)) * p4;
+        auto p = vec3(r.x, r.y, r.z);
+        arrow_vertices[i + 2] = p + to;
+    }
 
-    vec3 arrow_vertices[] = {
-        from, to, pv1, pv2, pv3, pv4,
-    };
+    // add from-to line
+    const unsigned int arrow_indices_num = iterations * 2 + 2;
+    unsigned int arrow_indices[arrow_indices_num];
+    arrow_indices[0] = 0; // from
+    arrow_indices[1] = 1; // to
 
-    vec3 arrow_colors[] = {
-        color, color, color, color, color, color,
-    };
+    // add to-points lines
+    for (unsigned int i = 0; i < iterations; i++)
+    {
+        arrow_indices[i * 2 + 2] = 1;     // to
+        arrow_indices[i * 2 + 3] = i + 2; // point
+    }
 
-    // each number is a vertex, each pair is a line
-    unsigned int arrow_indices[] = {0, 1, 1, 2, 1, 3, 1, 4, 1, 5};
-
-    lines.add(&arrow_vertices[0].v[0], &arrow_colors[0].v[0], 6, &arrow_indices[0], 10);
+    lines.add(&arrow_vertices[0].v[0], &arrow_colors[0].v[0], total, &arrow_indices[0], arrow_indices_num);
 }
+
+// void Shapes::addArrow(Lines &lines, const vec3 &from, const vec3 &to, const vec3 &color)
+//{
+//     vec3 one(0.2354846f, 0.2168565f, 0.2516546f);
+//     vec3 two(-0.2354846f, 0.2168565f, 0.2516546f);
+//
+//     auto sharpness = 0.1f; // range [0,1] : 0 = sharpest, 1 = flattest
+//     auto length = 0.15f;
+//
+//     auto dir = to - from;
+//     auto inv = from - to;
+//
+//     auto pv1 = normalise(normalise(cross(one, dir)) * sharpness + normalise(inv) * 0.5f) * length + to;
+//     auto pv2 = normalise(normalise(cross(one, inv)) * sharpness + normalise(inv) * 0.5f) * length + to;
+//     auto pv3 = normalise(normalise(cross(two, dir)) * sharpness + normalise(inv) * 0.5f) * length + to;
+//     auto pv4 = normalise(normalise(cross(two, inv)) * sharpness + normalise(inv) * 0.5f) * length + to;
+//
+//     vec3 arrow_vertices[] = {
+//         from, to, pv1, pv2, pv3, pv4,
+//     };
+//
+//     vec3 arrow_colors[] = {
+//         color, color, color, color, color, color,
+//     };
+//
+//     // each number is a vertex, each pair is a line
+//     unsigned int arrow_indices[] = {0, 1, 1, 2, 1, 3, 1, 4, 1, 5};
+//
+//     lines.add(&arrow_vertices[0].v[0], &arrow_colors[0].v[0], 6, &arrow_indices[0], 10);
+// }
 
 void Shapes::addGrid(Lines &lines, const vec3 &from, const vec3 &to, const vec3 &color, int divs)
 {

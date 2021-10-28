@@ -1,0 +1,94 @@
+Practica 2
+
+
+ En esta práctica vamos a trabajar el concepto de jerarquía de transformaciones:
+ 
+  en el código de exercise2.h
+  
+  están los métodos init(), update() y terminate() que controlan el ciclo de ejecución
+  init y terminate se ejecutan una vez al principio y al final
+  update() se ejecuta en cada frame
+  
+  1. comprueba que al ejecutar la cámara se encuentra por encima de una cuadrícula (grid)
+  2. intenta mover la cámara hacia adelante y atras como en la práctica anterior usando las teclas para modificar cameraPosition y después:
+  
+		cameraMatrix = translate(identity_mat4(), cameraPosition*-1.f);
+   
+   ¿recuerdas por qué se multiplica cameraPosition por -1.f?
+   
+  3. vas a utilizar una jerarquía de transformaciones para poder mover la cámara y ver más elementos de la escena.
+	
+  	  La jerarquía va a ser de la siguiente forma
+	  
+	  sceneRoot
+	  |_camera
+	  |_grid
+	  |_meshGroup
+	  
+	  meshgroup es una malla que hasta el momento es invisible
+	       
+      para poder tener un arbol de transformaciones, se utiliza la clase Node. Cada Node representa una transformación (p.ej. sceneRoot) y puede tener transformaciones hijas 
+	  (p.ej. camera)
+	  
+	  Para ello Node tiene un array de hijos (ver Node.h):
+
+		std::vector<Node*> children;
+		
+	  también tiene una serie de vectores, quaterniones (versor) y matrices, especialmente position, rotation y scale
+	  
+	  ve a Node.cpp
+	  
+	   - intenta entender qué está sucediendo en updateHierarchy(). Nota lo siguiente:
+	    - primero se multiplica la matriz local por la del padre (si existe) y con ello se obtiene una matriz global (world)
+		- después se llama a updateHierarchy() de los hijos recursivamente
+		
+	  3.1 fíjate en exercise2.h que en el método update() se ejecuta sceneRoot.updateHierarchy()
+
+	  3.2 completa el código de updateLocal() en Node.cpp
+	  
+	   localMatrix = T*R*S;
+	   localInverseMatrix = Sinv*transpose(R)*Tinv
+  
+	  para lo que debes crear las siguientes matrices:
+	  T= translacion segun position
+	  R= rotacion segun rotation
+		pista: mira cómo pasar de quaternio a matrix en math_utils
+	  S= escala segun scale
+	  
+	  Tinv = translacion inversa según position
+		pista: ¿te puede servir lo mismo que hacíamos con cameraMatrix para esta matriz?
+	  Rinv= rotación inversa segun rotation 
+		pista: ¿es R ortogonal? recuerda que inverse(A) = transpose(A) si A es ortogonal)
+	  Sinv= escala inversa segun scale
+		pista: ¿que debe haber en la diagonal de una matriz de escala inversa?
+	  
+	  no debes utilizar inverse() para obtener la matriz local inversa en este ejercicio, pero la puedes utilizar para hacer debug -por ejemplo, puedes comparar los números de tu matriz resultado con el que retorna inverse()-.
+	  
+	  utiliza math_utils para ello.
+	  
+	  3.3 comprobarás que te funciona cuando veas la malla de ejemplo.
+	  
+	  fíjate que hay un nodo para cada elemento involucrado en el render:
+	  
+	  -camera tiene camNode
+	  -grid tiene sceneRoot
+	  -meshGroup tiene meshGroupNode
+	  
+	  3.4 Actualiza las llamadas previas a render en update() del exercise2.h para que los elemento se rendericen usando las matrices de mundo (worldMatrix) de sus nodos correspondientes:
+	  
+	    ¿qué matriz debes utilizar como viewmatrix en:
+		
+			camera.set_shader_uniforms(lines_shader_index, viewmatrix);
+		
+		?
+			
+		¿la matriz de la cámara o su inversa? ¿por qué?
+		
+		Acuérdate de actualizar en el método update() del ejercicio la cámara en los dos sitios donde se hace camera.set_shader_uniforms para el pintado, tanto de las líneas como de las mallas.
+	  
+	  permite que la camara mire con el ratón utilizando camNode.rotation
+	   - para ello utiliza la función  quat_from_axis_deg y camYaw y camPitch
+	  
+	  ¿sabrías rotar el diorama? ¿qué nodo tienes que rotar? ¿cómo se rota o transforma un nodo?
+	  
+	  
