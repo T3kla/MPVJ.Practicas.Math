@@ -95,11 +95,13 @@ void Lines::render(GLuint shader_programme)
 
 void Shapes::addArrow(Lines &lines, const vec3 &from, const vec3 &to, const vec3 &color)
 {
-    vec3 one(0.2354846f, 0.2168565f, 0.2516546f);
+    vec3 one(0.5054846f, 0.5068565f, 0.5046546f);
 
-    const unsigned int fromTo = 2;
     const unsigned int iterations = 25;
-    const unsigned int total = iterations + fromTo;
+    const unsigned int sharpness = 0.1f; // range [0,1] : 0 = sharpest, 1 = flattest
+    const unsigned int length = 0.15f;
+
+    const unsigned int total = iterations + 2;
 
     vec3 arrow_vertices[total];
     arrow_vertices[0] = from;
@@ -108,9 +110,6 @@ void Shapes::addArrow(Lines &lines, const vec3 &from, const vec3 &to, const vec3
     vec3 arrow_colors[total];
     for (unsigned int i = 0; i < total; i++)
         arrow_colors[i] = color;
-
-    auto sharpness = 0.1f; // range [0,1] : 0 = sharpest, 1 = flattest
-    auto length = 0.15f;
 
     auto axis_dir = to - from;
     auto axis_inv = from - to;
