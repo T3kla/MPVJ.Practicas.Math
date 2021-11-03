@@ -95,10 +95,12 @@ void Lines::render(GLuint shader_programme)
 
 void Shapes::addArrow(Lines &lines, const vec3 &from, const vec3 &to, const vec3 &color)
 {
+    // vector with random deep decimals so using cross() always yields a valid result
+    // for every arbitrary arrow we'd like to draw
     vec3 one(0.5054846f, 0.5068565f, 0.5046546f);
 
     const unsigned int iterations = 25;
-    const unsigned int sharpness = 0.1f; // range [0,1] : 0 = sharpest, 1 = flattest
+    const unsigned int sharpness = 0.1f; // 0 = sharpest, 1 = flattest
     const unsigned int length = 0.15f;
 
     const unsigned int total = iterations + 2;

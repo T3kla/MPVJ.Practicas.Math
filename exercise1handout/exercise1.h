@@ -61,6 +61,7 @@ struct Exercise1
         Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0, 1, 0), vec3(0, 1, 0));
         Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0, 0, 1), vec3(0, 0, 1));
         // ---------------------------------------------------------------
+        // Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0.5f, 0.5f, 0.5f), vec3(0, 0, 0));
         Shapes::addArrow(referenceFrameLines, vec3(1, 0, 1), vec3(1, 1, 1), vec3(0, 0, 0));
         Shapes::addArrow(referenceFrameLines, vec3(1, 0, 1), vec3(1, -1, 1), vec3(0, 0, 0));
         Shapes::addArrow(referenceFrameLines, vec3(3, 0, 1), vec3(3, 1, 1), vec3(0, 0, 0));
