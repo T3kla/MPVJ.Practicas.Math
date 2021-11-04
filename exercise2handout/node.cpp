@@ -33,7 +33,7 @@ void Node::removeChild(Node &node)
     }
 }
 
-// ------------------------- Check file 'answers.md' ------------------------- REVIEW
+// --------------------------------------------------------------------------- REVIEW
 void Node::updateLocal()
 {
     // 00, 04, 08, 12,

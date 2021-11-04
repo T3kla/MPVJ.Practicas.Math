@@ -172,7 +172,7 @@ struct Exercise2
 
         glfwPollEvents();
 
-        // ------------------------- Check file 'answers.md' ------------------------- REVIEW
+        // --------------------------------------------------------------------------- REVIEW
         if (isInputEnabled)
         {
             glfwGetCursorPos(window, &mousePosX, &mousePosY);
