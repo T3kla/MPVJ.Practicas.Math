@@ -93,85 +93,67 @@ void Lines::render(GLuint shader_programme)
     glBindVertexArray(0);
 }
 
+// ------------------------- Check file 'answers.md' ------------------------- REVIEW
+
 void Shapes::addArrow(Lines &lines, const vec3 &from, const vec3 &to, const vec3 &color)
 {
-    // vector with random deep decimals so using cross() always yields a valid result
-    // for every arbitrary arrow we'd like to draw
+    // Vector with random deep decimals so using cross(one, axis) always yields a valid
+    // result for every arbitrary arrow we'd like to draw
     vec3 one(0.5054846f, 0.5068565f, 0.5046546f);
 
-    const unsigned int iterations = 25;
-    const unsigned int sharpness = 0.1f; // 0 = sharpest, 1 = flattest
-    const unsigned int length = 0.15f;
+    const int iterations = 25;    // number of additional edges
+    const float sharpness = 0.1f; // edges sharpness: 0 = sharpest, 1 = flattest
+    const float length = 0.15f;   // edges length
 
-    const unsigned int total = iterations + 2;
+    // Total number of vertices
+    const unsigned int vertex_count = iterations + 2;
 
-    vec3 arrow_vertices[total];
+    // Vertex storage
+    vec3 arrow_vertices[vertex_count];
     arrow_vertices[0] = from;
     arrow_vertices[1] = to;
 
-    vec3 arrow_colors[total];
-    for (unsigned int i = 0; i < total; i++)
+    // Color of the lines drawn
+    // Has to be of length 'vertex_count'
+    vec3 arrow_colors[vertex_count];
+    for (unsigned int i = 0; i < vertex_count; i++)
         arrow_colors[i] = color;
 
+    // Rotation axis and inverse
     auto axis_dir = to - from;
     auto axis_inv = from - to;
+
+    // Point to rotate and angle of rotation
     auto point = normalise(normalise(cross(one, axis_dir)) * sharpness + normalise(axis_inv) * 0.5f) * length;
     auto alpha = 360.f / iterations;
 
-    // generate round points
+    // Rotate the point and save it's positions
     for (unsigned int i = 0; i < iterations; i++)
     {
-        auto p4 = vec4(point, 1);
-        auto r = quat_to_mat4(quat_from_axis_deg(alpha * i, axis_dir.x, axis_dir.y, axis_dir.z)) * p4;
-        auto p = vec3(r.x, r.y, r.z);
-        arrow_vertices[i + 2] = p + to;
+        // b = Ax
+        auto x = vec4(point, 1);
+        auto A = quat_to_mat4(quat_from_axis_deg(alpha * i, axis_dir.x, axis_dir.y, axis_dir.z)) * x;
+        auto b = vec3(A.x, A.y, A.z) + to;
+        arrow_vertices[i + 2] = b;
     }
 
-    // add from-to line
-    const unsigned int arrow_indices_num = iterations * 2 + 2;
-    unsigned int arrow_indices[arrow_indices_num];
+    // This thing draw pairs of vertices
+    const unsigned int index_count = iterations * 2 + 2;
+    unsigned int arrow_indices[index_count];
     arrow_indices[0] = 0; // from
     arrow_indices[1] = 1; // to
 
-    // add to-points lines
+    // Make pairs of vertices to draw
     for (unsigned int i = 0; i < iterations; i++)
     {
         arrow_indices[i * 2 + 2] = 1;     // to
         arrow_indices[i * 2 + 3] = i + 2; // point
     }
 
-    lines.add(&arrow_vertices[0].v[0], &arrow_colors[0].v[0], total, &arrow_indices[0], arrow_indices_num);
+    lines.add(&arrow_vertices[0].v[0], &arrow_colors[0].v[0], vertex_count, &arrow_indices[0], index_count);
 }
 
-// void Shapes::addArrow(Lines &lines, const vec3 &from, const vec3 &to, const vec3 &color)
-//{
-//     vec3 one(0.2354846f, 0.2168565f, 0.2516546f);
-//     vec3 two(-0.2354846f, 0.2168565f, 0.2516546f);
-//
-//     auto sharpness = 0.1f; // range [0,1] : 0 = sharpest, 1 = flattest
-//     auto length = 0.15f;
-//
-//     auto dir = to - from;
-//     auto inv = from - to;
-//
-//     auto pv1 = normalise(normalise(cross(one, dir)) * sharpness + normalise(inv) * 0.5f) * length + to;
-//     auto pv2 = normalise(normalise(cross(one, inv)) * sharpness + normalise(inv) * 0.5f) * length + to;
-//     auto pv3 = normalise(normalise(cross(two, dir)) * sharpness + normalise(inv) * 0.5f) * length + to;
-//     auto pv4 = normalise(normalise(cross(two, inv)) * sharpness + normalise(inv) * 0.5f) * length + to;
-//
-//     vec3 arrow_vertices[] = {
-//         from, to, pv1, pv2, pv3, pv4,
-//     };
-//
-//     vec3 arrow_colors[] = {
-//         color, color, color, color, color, color,
-//     };
-//
-//     // each number is a vertex, each pair is a line
-//     unsigned int arrow_indices[] = {0, 1, 1, 2, 1, 3, 1, 4, 1, 5};
-//
-//     lines.add(&arrow_vertices[0].v[0], &arrow_colors[0].v[0], 6, &arrow_indices[0], 10);
-// }
+// ---------------------------------------------------------------------------
 
 void Shapes::addGrid(Lines &lines, const vec3 &from, const vec3 &to, const vec3 &color, int divs)
 {

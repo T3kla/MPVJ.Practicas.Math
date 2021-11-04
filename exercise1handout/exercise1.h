@@ -53,20 +53,21 @@ struct Exercise1
 
         cubeLines.add(&cubeVertexPositions[0].v[0], &cubeVertexColors[0].v[0], 8, &cubeLineIndices[0], 12 * 2);
         cubeLines.load_to_gpu();
-        cubeMatrix = identity_mat4();
+        // ------------------------- Check file 'answers.md' ------------------------- REVIEW
         cubePosition = vec3(2, 0, 0);
+        cubeMatrix = translate(identity_mat4(), cubePosition);
         cubeSpeed = 3.0f;
 
-        Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(1, 0, 0), vec3(1, 0, 0));
-        Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0, 1, 0), vec3(0, 1, 0));
-        Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0, 0, 1), vec3(0, 0, 1));
-        // ---------------------------------------------------------------
-        // Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0.5f, 0.5f, 0.5f), vec3(0, 0, 0));
+        Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0.5f, 0.5f, 0.5f), vec3(0, 0, 0));
         Shapes::addArrow(referenceFrameLines, vec3(1, 0, 1), vec3(1, 1, 1), vec3(0, 0, 0));
         Shapes::addArrow(referenceFrameLines, vec3(1, 0, 1), vec3(1, -1, 1), vec3(0, 0, 0));
         Shapes::addArrow(referenceFrameLines, vec3(3, 0, 1), vec3(3, 1, 1), vec3(0, 0, 0));
         Shapes::addArrow(referenceFrameLines, vec3(3, 0, 1), vec3(3, -1, 1), vec3(0, 0, 0));
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------------
+
+        Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(1, 0, 0), vec3(1, 0, 0));
+        Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0, 1, 0), vec3(0, 1, 0));
+        Shapes::addArrow(referenceFrameLines, vec3(0, 0, 0), vec3(0, 0, 1), vec3(0, 0, 1));
 
         referenceFrameLines.load_to_gpu();
         referenceFrameLines.get_shader_locations(lines_shader_index);
@@ -113,57 +114,51 @@ struct Exercise1
             glfwSetWindowShouldClose(window, 1);
         }
 
-        // ---------------------------------------------------------------
+        // ------------------------- Check file 'answers.md' ------------------------- REVIEW
+
+        // WASD     -> camera movement
+        // Arrows   -> cube movement
 
         if (glfwGetKey(window, GLFW_KEY_UP))
-        {
-            cubePosition = vec3(0, 1, 0) * cubeSpeed * elapsed_seconds;
-        }
+            cubePosition += vec3(0, 1, 0);
         if (glfwGetKey(window, GLFW_KEY_DOWN))
-        {
-            cubePosition = vec3(0, -1, 0) * cubeSpeed * elapsed_seconds;
-        }
+            cubePosition += vec3(0, -1, 0);
         if (glfwGetKey(window, GLFW_KEY_LEFT))
-        {
-            cubePosition = vec3(-1, 0, 0) * cubeSpeed * elapsed_seconds;
-        }
+            cubePosition += vec3(-1, 0, 0);
         if (glfwGetKey(window, GLFW_KEY_RIGHT))
-        {
-            cubePosition = vec3(1, 0, 0) * cubeSpeed * elapsed_seconds;
-        }
+            cubePosition += vec3(1, 0, 0);
 
         if (glfwGetKey(window, GLFW_KEY_W))
-        {
             cameraPosition += vec3(0, 1, 0) * elapsed_seconds;
-        }
         if (glfwGetKey(window, GLFW_KEY_S))
-        {
             cameraPosition += vec3(0, -1, 0) * elapsed_seconds;
-        }
         if (glfwGetKey(window, GLFW_KEY_A))
-        {
             cameraPosition += vec3(-1, 0, 0) * elapsed_seconds;
-        }
         if (glfwGetKey(window, GLFW_KEY_D))
-        {
             cameraPosition += vec3(1, 0, 0) * elapsed_seconds;
-        }
 
-        versor q;
-        vec3 p, s;
-        cubeMatrix.decompose(q, p, s);
+        // Decompose cube matrix
+        versor cubeRotation;
+        vec3 cubeRealPosition;
+        vec3 cubeScale;
+        cubeMatrix.decompose(cubeRotation, cubeRealPosition, cubeScale);
 
-        // rotate cube from pivot, not orig
-        cubeMatrix = translate(cubeMatrix, p * -1);                    // place in 0,0,0
-        cubeMatrix = rotate_y_deg(cubeMatrix, 50.f * elapsed_seconds); // rotate cube
-        cubeMatrix = translate(cubeMatrix, cubePosition + p);          // place wherever it was before
+        // I'm using cubePosition as a "desired translation", while storing
+        // the real position in cubeMatrix. This line prevents diagonal shifting.
+        cubePosition = normalise(cubePosition) * cubeSpeed * elapsed_seconds;
 
-        cameraMatrix = translate(identity_mat4(), cameraPosition * -1.f);
-
-        // because i'm using 'translate(cubeMatrix' to keep rotation
+        // Rotate cube from center of mass instead of 0,0
+        cubeMatrix = translate(cubeMatrix, cubeRealPosition * -1.f);         // place in 0,0,0
+        cubeMatrix = rotate_x_deg(cubeMatrix, 50.f * elapsed_seconds);       // rotate cube in x
+        cubeMatrix = rotate_y_deg(cubeMatrix, 30.f * elapsed_seconds);       // rotate cube in y
+        cubeMatrix = rotate_z_deg(cubeMatrix, 75.f * elapsed_seconds);       // rotate cube in z
+        cubeMatrix = translate(cubeMatrix, cubePosition + cubeRealPosition); // place wherever it was before
         cubePosition = vec3(0, 0, 0);
 
-        // ---------------------------------------------------------------
+        // Camera view
+        cameraMatrix = translate(identity_mat4(), cameraPosition * -1.f);
+
+        // ---------------------------------------------------------------------------
 
         glUseProgram(lines_shader_index);
 
