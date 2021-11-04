@@ -138,8 +138,8 @@ struct Exercise2
 
         camera.updateProjection();
         camera.speed = 5.0f;
-        camera.yaw_speed = 60.f;
-        camera.pitch_speed = 30.f;
+        camera.yaw_speed = 20.f;
+        camera.pitch_speed = 10.f;
 
         // tell GL to only draw onto a pixel if the shape is closer to the viewer
         glEnable(GL_DEPTH_TEST); // enable depth-testing
@@ -199,36 +199,40 @@ struct Exercise2
         auto yaw = deg2rad(camYaw);
         auto pitch = deg2rad(camPitch);
 
-        // Transform Pitch and Yaw (two angles) to a look vector
-        vec3 forward(cosf(yaw) * cosf(pitch), sinf(pitch), sinf(yaw) * cosf(pitch));
-        forward = normalise(forward);
+        vec3 wUp(0, 1, 0);
 
-        vec3 up(0, 1, 0);
-        vec3 left = normalise(cross(up, forward));
-        vec3 front = normalise(cross(left, up));
-        // versor cuaternion(0, axis_to_yaw.y * sinf(yaw / 2), 0, cosf(yaw / 2));
+        // Look vector from Yaw and Pitch
+        vec3 fforward = normalise(vec3(cosf(pitch) * cosf(yaw), sinf(pitch), cosf(pitch) * sinf(-yaw)));
 
-        auto Y = quat_from_axis_rad(yaw, up.x, up.y, up.z);
-        auto P = quat_from_axis_rad(pitch, front.x, front.y, front.z);
+        // The object and the view are not alineated so forward is
+        // looking right. The following code corrects that.
+        auto t1 = vec4(fforward, 1);
+        auto t2 = quat_to_mat4(quat_from_axis_deg(90.f, wUp.x, wUp.y, wUp.z)) * t1;
+        auto forward = vec3(t2.x, t2.y, t2.z);
 
-        camNode.rotation = P + Y;
+        // Right
+        vec3 right = normalise(cross(forward, wUp));
+
+        auto Y = quat_from_axis_rad(yaw, wUp.x, wUp.y, wUp.z);
+        auto P = quat_from_axis_rad(pitch, right.x, right.y, right.z);
+
+        camNode.rotation = P * Y;
 
         if (glfwGetKey(window, GLFW_KEY_W))
-            cameraPosition += vec3(0, 0, -1) * elapsed_seconds * camera.speed;
+            cameraPosition += forward * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_S))
-            cameraPosition += vec3(0, 0, 1) * elapsed_seconds * camera.speed;
+            cameraPosition -= forward * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_A))
-            cameraPosition += vec3(-1, 0, 0) * elapsed_seconds * camera.speed;
+            cameraPosition -= right * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_D))
-            cameraPosition += vec3(1, 0, 0) * elapsed_seconds * camera.speed;
+            cameraPosition += right * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_SPACE))
-            cameraPosition += vec3(0, 1, 0) * elapsed_seconds * camera.speed;
+            cameraPosition += wUp * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL))
-            cameraPosition += vec3(0, -1, 0) * elapsed_seconds * camera.speed;
+            cameraPosition -= wUp * elapsed_seconds * camera.speed;
 
         camNode.position = cameraPosition;
 
-        // mat4 cameraMatrix = translate(identity_mat4(), cameraPosition * -1.f);
         //  ---------------------------------------------------------------------------
         mat4 gridMatrix = translate(identity_mat4(), vec3(0, 0, 0));
 
