@@ -50,13 +50,27 @@ void Node::updateLocal()
     T.m[14] = position.z;
     T.m[15] = 1.f;
 
-    S.m[0] = scale.x;
-    S.m[5] = scale.y;
+    S.m[00] = scale.x;
+    S.m[05] = scale.y;
     S.m[10] = scale.z;
     S.m[15] = 1.f;
 
+    auto Tinv = translate(identity_mat4(), position * -1.f);
+    auto Sinv = identity_mat4();
+    auto Rinv = transpose(R);
+
+    // FLT_EPSILON addition should prevent inf when scale is set to 0
+    auto noZero = [](float &f) { return f == 0.f ? f + FLT_EPSILON : f; };
+    Sinv.m[00] = 1 / noZero(scale.x);
+    Sinv.m[05] = 1 / noZero(scale.y);
+    Sinv.m[10] = 1 / noZero(scale.z);
+    Sinv.m[15] = 1.f;
+
+    auto debug = inverse(S) * inverse(R) * inverse(T);
+    auto inv = Sinv * Rinv * Tinv;
+
     localMatrix = T * R * S;
-    localInverseMatrix = inverse(S) * transpose(R) * inverse(T);
+    localInverseMatrix = inv;
 }
 
 void Node::updateHierarchy()

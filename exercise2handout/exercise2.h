@@ -54,7 +54,6 @@ struct Exercise2
     Node camNode;
     vec3 cameraPosition;
     mat4 cameraRotation;
-    float cameraTranslationSpeed;
 
     Node sceneRoot;
     GLuint mesh_shader_index;
@@ -127,7 +126,6 @@ struct Exercise2
         // camera
         cameraPosition = vec3(0, 3, 20);
         cameraRotation = identity_mat4();
-        cameraTranslationSpeed = 3.f;
 
         camNode.init();
         camNode.position = cameraPosition;
@@ -140,7 +138,8 @@ struct Exercise2
 
         camera.updateProjection();
         camera.speed = 5.0f;
-        camera.yaw_speed = 120.f;
+        camera.yaw_speed = 60.f;
+        camera.pitch_speed = 30.f;
 
         // tell GL to only draw onto a pixel if the shape is closer to the viewer
         glEnable(GL_DEPTH_TEST); // enable depth-testing
@@ -158,9 +157,7 @@ struct Exercise2
     void update()
     {
         if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
-        {
             glfwSetWindowShouldClose(window, 1);
-        }
 
         static float previous_seconds = static_cast<float>(glfwGetTime());
         float current_seconds = static_cast<float>(glfwGetTime());
@@ -174,60 +171,65 @@ struct Exercise2
         glViewport(0, 0, g_gl_width, g_gl_height);
 
         glfwPollEvents();
+
+        // ------------------------- Check file 'answers.md' ------------------------- REVIEW
         if (isInputEnabled)
         {
             glfwGetCursorPos(window, &mousePosX, &mousePosY);
-            float mouseDeltaX = static_cast<float>(mousePosX - prevMousePosX);
-            float mouseDeltaY = static_cast<float>(mousePosY - prevMousePosY);
+
+            auto mouseDeltaX = static_cast<float>(mousePosX - prevMousePosX);
+            auto mouseDeltaY = static_cast<float>(mousePosY - prevMousePosY);
+
             prevMousePosX = mousePosX;
             prevMousePosY = mousePosY;
 
             camYaw += -mouseDeltaX * camera.yaw_speed * elapsed_seconds;
-            camPitch += -mouseDeltaY * camera.yaw_speed * elapsed_seconds;
+            camPitch += -mouseDeltaY * camera.pitch_speed * elapsed_seconds;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_A))
-        {
-            camYaw += camera.yaw_speed * elapsed_seconds;
-        }
-        if (glfwGetKey(window, GLFW_KEY_D))
-        {
-            camYaw -= camera.yaw_speed * elapsed_seconds;
-        }
-        if (glfwGetKey(window, GLFW_KEY_W))
-        {
-            camPitch += camera.yaw_speed * elapsed_seconds;
-        }
-        if (glfwGetKey(window, GLFW_KEY_S))
-        {
-            camPitch -= camera.yaw_speed * elapsed_seconds;
-        }
-        const float PitchLimit = 80;
+        const auto PitchLimit = 80.f;
+
         camPitch = camPitch > PitchLimit ? PitchLimit : camPitch;
         camPitch = camPitch < -PitchLimit ? -PitchLimit : camPitch;
         camYaw = fmodf(camYaw, 360);
 
-        // TODO:
-        // camNode.rotation = quat_from_axis_deg(...)* ...;
+        const float r = (355.f / 113.f) / 180.f;
+        auto deg2rad = [&](float &deg) { return deg * r; };
 
-        // ------------------------- Check file 'answers.md' ------------------------- REVIEW
+        auto yaw = deg2rad(camYaw);
+        auto pitch = deg2rad(camPitch);
+
+        // Transform Pitch and Yaw (two angles) to a look vector
+        vec3 forward(cosf(yaw) * cosf(pitch), sinf(pitch), sinf(yaw) * cosf(pitch));
+        forward = normalise(forward);
+
+        vec3 up(0, 1, 0);
+        vec3 left = normalise(cross(up, forward));
+        vec3 front = normalise(cross(left, up));
+        // versor cuaternion(0, axis_to_yaw.y * sinf(yaw / 2), 0, cosf(yaw / 2));
+
+        auto Y = quat_from_axis_rad(yaw, up.x, up.y, up.z);
+        auto P = quat_from_axis_rad(pitch, front.x, front.y, front.z);
+
+        camNode.rotation = P + Y;
+
         if (glfwGetKey(window, GLFW_KEY_W))
-            cameraPosition += vec3(0, 0, -1) * elapsed_seconds * cameraTranslationSpeed;
+            cameraPosition += vec3(0, 0, -1) * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_S))
-            cameraPosition += vec3(0, 0, 1) * elapsed_seconds * cameraTranslationSpeed;
+            cameraPosition += vec3(0, 0, 1) * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_A))
-            cameraPosition += vec3(-1, 0, 0) * elapsed_seconds * cameraTranslationSpeed;
+            cameraPosition += vec3(-1, 0, 0) * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_D))
-            cameraPosition += vec3(1, 0, 0) * elapsed_seconds * cameraTranslationSpeed;
+            cameraPosition += vec3(1, 0, 0) * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_SPACE))
-            cameraPosition += vec3(0, 1, 0) * elapsed_seconds * cameraTranslationSpeed;
+            cameraPosition += vec3(0, 1, 0) * elapsed_seconds * camera.speed;
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL))
-            cameraPosition += vec3(0, -1, 0) * elapsed_seconds * cameraTranslationSpeed;
-        // ---------------------------------------------------------------------------
+            cameraPosition += vec3(0, -1, 0) * elapsed_seconds * camera.speed;
 
         camNode.position = cameraPosition;
 
-        mat4 cameraMatrix = translate(identity_mat4(), cameraPosition * -1.f);
+        // mat4 cameraMatrix = translate(identity_mat4(), cameraPosition * -1.f);
+        //  ---------------------------------------------------------------------------
         mat4 gridMatrix = translate(identity_mat4(), vec3(0, 0, 0));
 
         meshGroupNode.rotation = quat_from_axis_deg(meshYaw += elapsed_seconds * 10, 0, 1, 0);
@@ -238,21 +240,23 @@ struct Exercise2
         glUseProgram(mesh_shader_index);
 
         camera.get_shader_uniforms(mesh_shader_index);
-        camera.set_shader_uniforms(mesh_shader_index, cameraMatrix);
+        camera.set_shader_uniforms(lines_shader_index, camNode.worldInverseMatrix);
         // TODO: camera.set_shader_uniforms(lines_shader_index, ...);
+        // camera.set_shader_uniforms(mesh_shader_index, cameraMatrix);
 
         meshGroup.set_shader_uniforms(mesh_shader_index, ambientColor);
         meshGroup.render(mesh_shader_index);
 
         glUseProgram(0);
-
         glUseProgram(lines_shader_index);
 
         camera.get_shader_uniforms(lines_shader_index);
-        camera.set_shader_uniforms(mesh_shader_index, cameraMatrix);
+        camera.set_shader_uniforms(lines_shader_index, camNode.worldInverseMatrix);
         // TODO: camera.set_shader_uniforms(lines_shader_index, ...);
+        // camera.set_shader_uniforms(mesh_shader_index, cameraMatrix);
 
         grid.get_shader_uniforms(lines_shader_index);
+        grid.set_shader_uniforms(lines_shader_index, sceneRoot.worldMatrix);
         // TODO: grid.set_shader_uniforms(lines_shader_index, ...);
 
         grid.set_shader_uniforms(lines_shader_index, gridMatrix);
