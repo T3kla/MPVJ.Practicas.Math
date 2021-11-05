@@ -209,9 +209,7 @@ struct Exercise2
         auto t1 = vec4(fforward, 1);
         auto t2 = quat_to_mat4(quat_from_axis_deg(90.f, wUp.x, wUp.y, wUp.z)) * t1;
         auto forward = vec3(t2.x, t2.y, t2.z);
-
-        // Right
-        vec3 right = normalise(cross(forward, wUp));
+        auto right = normalise(cross(forward, wUp));
 
         auto Y = quat_from_axis_rad(yaw, wUp.x, wUp.y, wUp.z);
         auto P = quat_from_axis_rad(pitch, right.x, right.y, right.z);
@@ -272,8 +270,6 @@ struct Exercise2
         axis.render(lines_shader_index);
 
         glUseProgram(0);
-
-        // put the stuff we've been drawing onto the display
         glfwSwapBuffers(window);
     }
 
@@ -284,7 +280,6 @@ struct Exercise2
 
     void terminate()
     {
-        // close GL context and any other GLFW resources
         glfwTerminate();
     }
 };
