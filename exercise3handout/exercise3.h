@@ -70,8 +70,6 @@ struct Exercise3
         return normalise(mouse_world) + _camPos;
     }
 
-    // ------------------------------------------------------------------------------------------
-
     struct Ray
     {
         vec3 origin;
@@ -83,16 +81,15 @@ struct Exercise3
 
     // Check if a ray and a sphere intersect.
     // It rejects intersections behind the ray origin.
-    // Sets intersection_distance to the closest intersection.
+    // Outs *distance_ as the distance to the closest intersection.
     static bool raySphereIntersection(const Ray &_ray, vec3 _sphere_pos, float _sphere_radius, float *distance_)
     {
         assert(fabsf(length(_ray.direction) - 1) < 1e-03);
 
-        auto A_C = _ray.origin - _ray.direction;
-        auto a = 1.f;
-        auto b = 2 * dot(_ray.direction, A_C);
-        auto c = dot(A_C, A_C) - _sphere_radius * _sphere_radius;
-        auto discriminant = b * b - 4 * a * c;
+        auto sphere_to_orig = _ray.origin - _sphere_pos;
+        auto a = 2.f * dot(_ray.direction, sphere_to_orig);
+        auto b = dot(sphere_to_orig, sphere_to_orig) - _sphere_radius * _sphere_radius;
+        auto discriminant = a * a - 4.f * b;
 
         // Ray hits no points
         if (discriminant < 0.f)
@@ -101,13 +98,12 @@ struct Exercise3
         // Ray hits one point
         if (0.f == discriminant)
         {
-            auto hit = -b + sqrtf(discriminant);
+            auto hit = -a + sqrtf(discriminant);
 
             if (hit < 0.f)
                 return false;
 
             *distance_ = hit;
-
             return true;
         }
 
@@ -116,8 +112,8 @@ struct Exercise3
         {
             auto sqrt_discriminant = sqrtf(discriminant);
 
-            auto hit_near = -b - sqrt_discriminant;
-            auto hit_far = -b + sqrt_discriminant;
+            auto hit_near = -a - sqrt_discriminant;
+            auto hit_far = -a + sqrt_discriminant;
 
             // Sphere is behind
             if (hit_near < 0.f && hit_far < 0.f)
@@ -133,25 +129,24 @@ struct Exercise3
 
             return true;
         }
-
-        return false;
     }
-
-    // ------------------------------------------------------------------------------------------ REVIEW
 
     // Check if a ray pass through a sphere.
     // It rejects intersections behind the ray origin.
-    static bool raySphereThrough(const Ray &_ray, vec3 _sphere_pos, float _sphere_radius)
+    // Outs *distance_ as the distance to the sphere origin.
+    static bool raySphereThrough(const Ray &_ray, vec3 _sphere_pos, float _sphere_radius, float *distance_)
     {
         // Closest distance from point to ray
-        // a = point - orig
-        // dis = |a x b| when b is unitary
+        //      toPoint = point - orig
+        //      distance = |toPoint x ray| // when ray is unitary
 
-        auto to_sphere = _sphere_pos - _ray.origin;
-        auto distance = length(cross(to_sphere, _ray.direction));
-        auto frontfacing = dot(to_sphere, _ray.origin) > 0.f;
+        auto orig_to_sphere = _sphere_pos - _ray.origin;
+        auto dis_to_Ray = length(cross(orig_to_sphere, _ray.direction));
+        auto frontfacing = dot(orig_to_sphere, _ray.direction) > 0.f;
 
-        return frontfacing && distance < _sphere_radius;
+        *distance_ = length(_ray.origin - _sphere_pos);
+
+        return frontfacing && dis_to_Ray < _sphere_radius;
     }
 
     // ------------------------------------------------------------------------------------------
@@ -164,8 +159,10 @@ struct Exercise3
     {
         Exercise3 &exercise = *static_cast<Exercise3 *>(glfwGetWindowUserPointer(window));
 
-        if (key != GLFW_KEY_F)
+        // --------------------------------------------------------------------------- REVIEW
+        if (key != GLFW_KEY_F) // Changed to F because couldn't find K0
             return;
+        // ---------------------------------------------------------------------------
 
         auto cam = vec3(exercise.camNode.worldMatrix.getColumn(3));
         auto mouse =
@@ -180,7 +177,6 @@ struct Exercise3
         exercise.axis.load_to_gpu();
     }
 
-    /* this function is called when the mouse buttons are clicked or un-clicked */
     static void onMouseClicked(GLFWwindow *window, int button, int action, int mods)
     {
         Exercise3 &exercise = *static_cast<Exercise3 *>(glfwGetWindowUserPointer(window));
@@ -196,20 +192,25 @@ struct Exercise3
             auto ray = Ray(mouse, normalise(mouse - cam));
 
             auto closest_sphere = -1;
-            auto closest_sphere_dis = 0.f;
+            auto closest_sphere_dis = std::numeric_limits<float>::max();
 
-            for (int i = 0; i < NumSpheres; i++)
+            for (auto i = 0; i < NumSpheres; i++)
             {
-                auto dis = 0.f;
+                auto this_sphere_dis = 0.f;
                 auto pos = vec3(exercise.sphereNodes[i].worldMatrix.getColumn(3));
-                // auto this_works = raySphereThrough(ray, spherePos, 1);
 
-                if (raySphereIntersection(ray, pos, 1, &dis))
-                    if (closest_sphere == -1 || dis < closest_sphere_dis)
-                    {
-                        closest_sphere = i;
-                        closest_sphere_dis = dis;
-                    }
+                // --------------------------------------------------------------------------- REVIEW
+                // if (!raySphereIntersection(ray, pos, 1, &this_sphere_dis)) // Included
+                //    continue;                                               //
+                if (!raySphereThrough(ray, pos, 1, &this_sphere_dis)) // Mine
+                    continue;                                         //
+                //  ---------------------------------------------------------------------------
+
+                if (this_sphere_dis > closest_sphere_dis)
+                    continue;
+
+                closest_sphere = i;
+                closest_sphere_dis = this_sphere_dis;
             }
 
             exercise.selectedSphereIndex = closest_sphere;
@@ -351,7 +352,10 @@ struct Exercise3
         glViewport(0, 0, g_gl_width, g_gl_height);
         glfwPollEvents();
 
-        // --------------------------------------------------------------------------- REVIEW
+        // ------------------------------------------------------------------------------------------ REVIEW
+
+        // Replaced with code from exercise 2 except one thing explained bellow
+
         if (isInputEnabled)
         {
             glfwGetCursorPos(window, &mousePosX, &mousePosY);
@@ -372,28 +376,33 @@ struct Exercise3
         camPitch = camPitch < -PitchLimit ? -PitchLimit : camPitch;
         camYaw = fmodf(camYaw, 360);
 
-        const float r = (355.f / 113.f) / 180.f;
+        constexpr float r = (355.f / 113.f) / 180.f;
         auto deg2rad = [&](float &deg) { return deg * r; };
 
         auto yaw = deg2rad(camYaw);
         auto pitch = deg2rad(camPitch);
 
-        vec3 wUp(0, 1, 0);
-
         // Look vector from Yaw and Pitch
         vec3 fforward = normalise(vec3(cosf(pitch) * cosf(yaw), sinf(pitch), cosf(pitch) * sinf(-yaw)));
+        vec3 wUp(0, 1, 0);
 
         // The object and the view are not alineated so forward is
         // looking right. The following code corrects that.
         auto t1 = vec4(fforward, 1);
         auto t2 = quat_to_mat4(quat_from_axis_deg(90.f, wUp.x, wUp.y, wUp.z)) * t1;
-        auto forward = vec3(t2.x, t2.y, t2.z);
+        auto forward = vec3(t2);
         auto right = normalise(cross(forward, wUp));
 
-        // auto Y = quat_from_axis_rad(yaw, wUp.x, wUp.y, wUp.z);
-        // auto P = quat_from_axis_rad(pitch, right.x, right.y, right.z);
+        // Replaced this three lines because they are not needed to calculate rotation since
+        // I don't need to calculate rotation using the camera axes. In the end, mouse delta
+        // has nothing to do with the camera and rotation is a direct result of it.
 
-        // camNode.rotation = P * Y;
+        // The only involvement with the camera is the assignment of said rotation into the
+        // rotation of the camera. Would have been nice to realize this earlier.
+
+        //      auto Y = quat_from_axis_rad(yaw, wUp.x, wUp.y, wUp.z);
+        //      auto P = quat_from_axis_rad(pitch, right.x, right.y, right.z);
+        //      camNode.rotation = P * Y;
 
         camNode.rotation = quat_from_axis_deg(camYaw, 0, 1, 0) * quat_from_axis_deg(camPitch, 1, 0, 0);
 
@@ -412,7 +421,7 @@ struct Exercise3
 
         camNode.position = cameraPosition;
 
-        //  ---------------------------------------------------------------------------
+        // ------------------------------------------------------------------------------------------
 
         if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
             glfwSetWindowShouldClose(window, 1);
