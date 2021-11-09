@@ -102,7 +102,6 @@ struct Exercise2
 
         for (size_t i = 0; i < meshGroup.nodes.size(); ++i)
         {
-
             const Node &meshRoot = meshGroup.nodes[i];
 
             vec3 pos = meshRoot.worldMatrix.getColumn(3);

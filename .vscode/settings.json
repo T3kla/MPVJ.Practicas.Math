@@ -1,1 +1,10 @@
-{}
+{
+    "files.associations": {
+        "*.uss": "css",
+        "*.uxml": "xml",
+        "*.clang-format": "yaml",
+        ".ruleset": "xml",
+        ".config": "xml",
+        "vector": "cpp"
+    }
+}
